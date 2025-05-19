@@ -8,68 +8,97 @@ st.set_page_config(page_title="Pentest Toolbox", page_icon="🛠️", layout="wi
 user = getattr(st, "user", None)
 
 if not user or not getattr(user, "is_logged_in", False):
-    # ► HTML + CSS pour centrer le contenu et ajouter un fond animé
+
     st.markdown(
         """
         <style>
-        /* ---- CENTRAGE DU CONTENU ---- */
+        /* --------- CENTRAGE FLEXBOX --------- */
         .login-wrapper {
             position: relative;
-            height: 100vh;             /* pleine hauteur */
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1;                /* au-dessus de la vague */
+            justify-content: center;   /* centrage vertical */
+            align-items: center;       /* centrage horizontal */
+            z-index: 1;                /* devant les dots */
+            text-align: center;
         }
-        /* ---- BOUTON STREAMLIT ---- */
+        h1 {
+            margin-bottom: .25em;
+        }
+        /* --------- STYLE BOUTON STREAMLIT --------- */
         button[kind="secondary"] {
-            font-size: 18px;
-            padding: 0.6em 2em;
-            border-radius: 8px;
+            font-size: 1.1rem;
+            padding: .6em 2.5em;
+            border-radius: 10px;
         }
-        /* ---- FOND ANIMÉ (wave) ---- */
-        .wave-bg {
-            position: fixed;
-            inset: 0;
-            overflow: hidden;
-            z-index: 0;                /* derrière le contenu */
+
+        /* --------- FOND ANIMÉ DOTS --------- */
+        body, .stApp {
+            background:#123 !important;
+            overflow:hidden;
         }
-        .wave-bg > svg {
-            position: absolute;
-            width: 200%;
-            height: 120%;
-            top: 0;
-            left: -50%;
-            animation: drift 12s linear infinite;
-            opacity: 0.15;             /* discrétion */
+        .dot-field::before,
+        .dot-field::after {
+            position:fixed;
+            top:50%;
+            left:50%;
+            width:3em;
+            height:3em;
+            content:'.';
+            font-size:52px;            /* taille du « point » */
+            color:transparent;         /* on n'affiche pas le texte lui-même */
+            mix-blend-mode:screen;
+            animation:move 44s ease-in-out infinite alternate;
+            /* --------- 40 ombres colorées aléatoires --------- */
+            text-shadow:
+                2.3em  1.8em 7px hsla( 12,100%,50%,.9),
+               -1.8em -0.6em 7px hsla(204,100%,50%,.9),
+                0.2em -2.2em 7px hsla(320,100%,50%,.9),
+               -2.6em  2.0em 7px hsla(265,100%,50%,.9),
+                1.5em  2.5em 7px hsla( 44,100%,50%,.9),
+               -2.9em -1.3em 7px hsla(175,100%,50%,.9),
+                2.7em -1.8em 7px hsla(300,100%,50%,.9),
+               -0.4em  2.9em 7px hsla(110,100%,50%,.9),
+                0.9em -2.9em 7px hsla( 80,100%,50%,.9),
+               -2.8em  0.4em 7px hsla(230,100%,50%,.9),
+                2.9em  0.7em 7px hsla(350,100%,50%,.9),
+               -1.0em  2.7em 7px hsla( 60,100%,50%,.9),
+               -2.4em -2.3em 7px hsla(190,100%,50%,.9),
+                2.0em -2.4em 7px hsla(280,100%,50%,.9),
+               -0.7em  2.0em 7px hsla( 30,100%,50%,.9),
+                /* ... (tu peux en rajouter autant que tu veux) ... */
+               -1.3em -2.8em 7px hsla(140,100%,50%,.9);
         }
-        @keyframes drift {
-            from { transform: translateX(0);   }
-            to   { transform: translateX(-50%);}
+        /* deuxième calque : durée & décalage différents */
+        .dot-field::after {
+            animation-duration:41s;
+            animation-delay:-18s;
+            transform:scale(1.2);
+        }
+
+        @keyframes move {
+          from { transform: rotate(0deg)   scale(12) translateX(-20px); }
+          to   { transform: rotate(360deg) scale(18) translateX( 20px); }
         }
         </style>
 
-        <div class="wave-bg">
-            <!-- vague SVG -->
-            <svg viewBox="0 0 1200 600" preserveAspectRatio="none">
-                <path d="M0,300 C300,400 900,200 1200,300 L1200,600 L0,600 Z"
-                      fill="#ffffff"></path>
-            </svg>
-        </div>
+        <!-- calque animé -->
+        <div class="dot-field"></div>
 
+        <!-- contenu centré -->
         <div class="login-wrapper">
             <h1>Pentest Toolbox – Connexion requise</h1>
             <p>Cette application est réservée aux utilisateurs autorisés.</p>
-            """
-        , unsafe_allow_html=True
+        """,
+        unsafe_allow_html=True,
     )
 
-    # ► Bouton Streamlit “Se connecter”
+    # bouton centré (fait partie du flexbox)
     if st.button("Se connecter", type="secondary"):
-        st.login()                # redirection Auth0 / OIDC
+        st.login()
 
-    st.markdown("</div>", unsafe_allow_html=True)  # ferme .login-wrapper
+    st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
 # ---------------------------- STATE INIT -----------------------------
