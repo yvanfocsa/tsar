@@ -12,22 +12,16 @@
 #
 set -euo pipefail
 
-# --- Helper functions ----------------------------------------------------
-cyan()  { printf '[1;36m%s[0m
-' "$1"; }
-green() { printf '[1;32m%s[0m
-' "$1"; }
-err()   { printf '[1;31m%s[0m
-' "$1"; exit 1; }
+cyan()  { printf '\033[1;36m%s\033[0m\n' "$1"; }
+green() { printf '\033[1;32m%s\033[0m\n' "$1"; }
+err()   { printf '\033[1;31m%s\033[0m\n' "$1"; exit 1; }
 
-# --- Initial info --------------------------------------------------------
 PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cyan "== Pentest Toolbox GUI installer =="
 echo "Project directory: $PROJECT_DIR"
-
 cd "$PROJECT_DIR"
 
-# --- Detect package manager ---------------------------------------------
+# Detect package manager
 if command -v apt-get &>/dev/null; then
   PKG_MANAGER="apt"
 elif command -v pacman &>/dev/null; then
@@ -36,7 +30,7 @@ else
   err "Unsupported distribution – install dependencies manually."
 fi
 
-# --- 1. Install OS packages ---------------------------------------------
+# 1. Install OS packages
 cyan "[1/5] Installing system packages (sudo)…"
 if [[ $PKG_MANAGER == "apt" ]]; then
   sudo apt-get update -y
@@ -45,7 +39,7 @@ else
   sudo pacman -Sy --noconfirm python python-virtualenv python-pip nmap nikto git curl
 fi
 
-# --- 2. Install / update SearchSploit -----------------------------------
+# 2. Install / update SearchSploit
 cyan "[2/5] Ensuring SearchSploit (Exploit-DB) is present…"
 if ! command -v searchsploit &>/dev/null; then
   sudo git clone --depth=1 https://gitlab.com/exploit-database/exploitdb.git /opt/exploitdb
@@ -56,47 +50,20 @@ else
   green "SearchSploit already present."
 fi
 
-# --- 3. Clean up any existing venv & create new one without sudo ------------
-# Default venv directory
+# 3. Create virtual environment
 VENV_DIR=".venv"
-
-cyan "[3/5] Replacing existing virtualenv (if any) and creating new one…"
-# Remove old venv directory if it exists (use without sudo to avoid permission issues)
+cyan "[3/5] Creating virtual environment…"
 if [[ -d "$VENV_DIR" ]]; then
   echo "Removing old virtual environment: $VENV_DIR"
   rm -rf "$VENV_DIR"
 fi
-
-# Create new venv as current user
 python3 -m venv "$VENV_DIR"
 
-# Activate the new venv
-# shellcheck disable=SC1091
+# Activate venv
 source "$VENV_DIR/bin/activate"
-
-# Upgrade pip & tools
-pip install --quiet --upgrade pip setuptools wheel
-cyan "[3/5] Replacing existing virtualenv (if any) and creating new one…"
-# Remove old venv directory if it exists (use without sudo to avoid permission issues)
-if [[ -d "$VENV_DIR" ]]; then
-  echo "Removing old virtual environment: $VENV_DIR"
-  rm -rf "$VENV_DIR"
-fi
-
-# Create new venv as original user
-python3 -m venv "$VENV_DIR"
-
-# Activate the new venv
-# shellcheck disable=SC1091
-source "$VENV_DIR/bin/activate"
-
-# Upgrade pip & tools
 pip install --quiet --upgrade pip setuptools wheel
 
-# Upgrade pip & tools
-pip install --quiet --upgrade pip setuptools wheel
-
-# --- 4. Patch requirements & install ------------------------------------. Patch requirements & install ------------------------------------. Patch requirements & install ------------------------------------
+# 4. Patch requirements & install
 cyan "[4/5] Installing Python dependencies…"
 if [[ -f requirements.txt ]]; then
   sed -i 's/^python-nmap.*/python-nmap>=0.7.1/' requirements.txt
@@ -105,12 +72,9 @@ else
   err "requirements.txt not found!"
 fi
 
-# --- 5. Finished ---------------------------------------------------------
+# 5. Finished
 green "[5/5] Setup complete!"
 
-# Automatically activate the venv and launch the app
-# Note: the following will keep the process attached to your terminal
-# Activate the virtual environment
+# Auto‑run app
 source "$VENV_DIR/bin/activate"
-# Launch Streamlit
 streamlit run streamlit_app.py
