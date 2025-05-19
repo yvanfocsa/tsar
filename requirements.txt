@@ -1,0 +1,8 @@
+streamlit>=1.34.0
+python-nmap>=0.7.1
+requests>=2.31
+beautifulsoup4>=4.12
+fpdf2>=2.7
+python-whois>=0.8
+Pillow>=9.0.0
+colorama>=0.4
