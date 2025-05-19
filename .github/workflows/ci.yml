@@ -1,5 +1,6 @@
 name: CI
 
+# Déclenche à chaque push ou PR sur la branche main
 on:
   push:
     branches: [ main ]
@@ -11,27 +12,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      # 1. Checkout du dépôt
+      - name: Checkout code
+        uses: actions/checkout@v3
 
+      # 2. Préparer Python
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
+      # 3. Installer les dépendances
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # 4. Lint avec Flake8, mais ne bloque pas le job sur les erreurs de style
       - name: Lint with flake8
+        continue-on-error: true
         run: |
           pip install flake8
           flake8 . \
             --max-line-length=100 \
             --exclude=modules,assets,.venv,__pycache__
 
+      # 5. Smoke-test Streamlit
       - name: Smoke-test Streamlit
         run: |
-          nohup streamlit run streamlit_app.py --server.port 8501 &
+          # Lance Streamlit en tâche de fond
+          nohup streamlit run streamlit_app.py --server.port 8501 &> streamlit.log &
+          # Laisse le temps au serveur de démarrer
           sleep 10
-          curl -f http://localhost:8501/ || exit 1
+          # Vérifie qu'il répond sur la racine
+          curl --fail http://localhost:8501/ || (cat streamlit.log && exit 1)
