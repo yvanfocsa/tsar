@@ -5,21 +5,72 @@ from modules import recon, scanning, exploit, osint, reporting, reverse_shell
 st.set_page_config(page_title="Pentest Toolbox", page_icon="🛠️", layout="wide")
 
 # ---------------------------- AUTH (OIDC) ----------------------------
-if not getattr(st, "user", None) or not st.user.is_logged_in:
-    st.title("Pentest Toolbox – Connexion requise")
-    st.write(
-        "Cette application est réservée aux utilisateurs autorisés. "
-        "Cliquez sur le bouton ci‑dessous pour vous connecter."
-    )
-    if st.button("Se connecter"):
-        st.login()          # Redirige vers l'Identity Provider défini dans secrets.toml
-    st.stop()
+user = getattr(st, "user", None)
 
-# Déconnexion + profil dans la sidebar
-with st.sidebar:
-    st.markdown(f"👤 **{st.user.get('name', 'Utilisateur')}**")
-    if st.button("Se déconnecter"):
-        st.logout()
+if not user or not getattr(user, "is_logged_in", False):
+    # ► HTML + CSS pour centrer le contenu et ajouter un fond animé
+    st.markdown(
+        """
+        <style>
+        /* ---- CENTRAGE DU CONTENU ---- */
+        .login-wrapper {
+            position: relative;
+            height: 100vh;             /* pleine hauteur */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;                /* au-dessus de la vague */
+        }
+        /* ---- BOUTON STREAMLIT ---- */
+        button[kind="secondary"] {
+            font-size: 18px;
+            padding: 0.6em 2em;
+            border-radius: 8px;
+        }
+        /* ---- FOND ANIMÉ (wave) ---- */
+        .wave-bg {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            z-index: 0;                /* derrière le contenu */
+        }
+        .wave-bg > svg {
+            position: absolute;
+            width: 200%;
+            height: 120%;
+            top: 0;
+            left: -50%;
+            animation: drift 12s linear infinite;
+            opacity: 0.15;             /* discrétion */
+        }
+        @keyframes drift {
+            from { transform: translateX(0);   }
+            to   { transform: translateX(-50%);}
+        }
+        </style>
+
+        <div class="wave-bg">
+            <!-- vague SVG -->
+            <svg viewBox="0 0 1200 600" preserveAspectRatio="none">
+                <path d="M0,300 C300,400 900,200 1200,300 L1200,600 L0,600 Z"
+                      fill="#ffffff"></path>
+            </svg>
+        </div>
+
+        <div class="login-wrapper">
+            <h1>Pentest Toolbox – Connexion requise</h1>
+            <p>Cette application est réservée aux utilisateurs autorisés.</p>
+            """
+        , unsafe_allow_html=True
+    )
+
+    # ► Bouton Streamlit “Se connecter”
+    if st.button("Se connecter", type="secondary"):
+        st.login()                # redirection Auth0 / OIDC
+
+    st.markdown("</div>", unsafe_allow_html=True)  # ferme .login-wrapper
+    st.stop()
 
 # ---------------------------- STATE INIT -----------------------------
 def init_state():
