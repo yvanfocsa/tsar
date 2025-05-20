@@ -2,13 +2,13 @@ import streamlit as st
 from modules import recon, scanning, exploit, osint, reporting, reverse_shell
 
 # Page configuration
-st.set_page_config(page_title="Pentest Toolbox", page_icon="🛠️", layout="wide")
+st.set_page_config(page_title="TSAR", page_icon="☢️", layout="wide")
 
 # ---------------------------- AUTH (OIDC) ----------------------------
 if not getattr(st, "user", None) or not st.user.is_logged_in:
-    st.title("Pentest Toolbox – Connexion requise")
+    st.title("TSAR")
     st.write(
-        "Cette application est réservée aux utilisateurs autorisés. "
+        "Tactical Security Automation & Recon"
         "Cliquez sur le bouton ci‑dessous pour vous connecter."
     )
     if st.button("Se connecter"):
