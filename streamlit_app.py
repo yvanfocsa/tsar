@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 from modules import recon, scanning, exploit, osint, reporting, reverse_shell
 
@@ -142,4 +141,3 @@ elif page == "Reporting":
     reporting.render()
 else:
     reverse_shell.render()
-```
