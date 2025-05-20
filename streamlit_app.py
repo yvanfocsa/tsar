@@ -34,7 +34,7 @@ if not user or not getattr(user, "is_logged_in", False):
     )
     st.markdown('<div class="auth-container">', unsafe_allow_html=True)
     st.title("🔒 TSAR")
-    st.write("Tactical Security Automation & Recon\nCliquez sur le bouton ci‑dessous pour vous connecter.")
+    st.write("Tactical Security Automation & Recon")
     if st.button("Se connecter", type="primary"):
         st.login()
     st.markdown('</div>', unsafe_allow_html=True)
