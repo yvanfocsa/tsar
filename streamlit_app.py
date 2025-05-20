@@ -2,42 +2,17 @@ import streamlit as st
 from modules import recon, scanning, exploit, osint, reporting, reverse_shell
 
 # Page configuration
-st.set_page_config(page_title="TSAR", page_icon="☢️", layout="wide")
+st.set_page_config(page_title="Pentest Toolbox", page_icon="🛠️", layout="wide")
 
 # ---------------------------- AUTH (OIDC) ----------------------------
-user = getattr(st, "user", None)
-if not user or not getattr(user, "is_logged_in", False):
-    # Centered full-screen login prompt
-    st.markdown(
-        """
-        <style>
-        .auth-container {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            background-color: #0f1e2b;
-            color: #ffffff;
-            margin: 0;
-        }
-        .auth-container button {
-            margin-top: 1.5rem;
-            font-size: 1.1rem;
-            padding: 0.6em 2.2em;
-            border-radius: 8px;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
+if not getattr(st, "user", None) or not st.user.is_logged_in:
+    st.title("Pentest Toolbox – Connexion requise")
+    st.write(
+        "Cette application est réservée aux utilisateurs autorisés. "
+        "Cliquez sur le bouton ci‑dessous pour vous connecter."
     )
-    st.markdown('<div class="auth-container">', unsafe_allow_html=True)
-    st.title("🔒 TSAR")
-    st.write("Tactical Security Automation & Recon")
-    if st.button("Se connecter", type="primary"):
-        st.login()
-    st.markdown('</div>', unsafe_allow_html=True)
+    if st.button("Se connecter"):
+        st.login()          # Redirige vers l'Identity Provider défini dans secrets.toml
     st.stop()
 
 # Déconnexion + profil dans la sidebar
