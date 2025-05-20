@@ -1,25 +1,23 @@
 import streamlit as st
-import subprocess
-import os
+import subprocess, os
 
 def _nmap_scan(target: str, args: str = "-sV -T4"):
-    # 1) chmod pour être sûr, même si Git Windows n'a pas propagé le bit
+    # On force le binaire exécutable
     os.chmod("assets/bin/nmap", 0o755)
 
-    # 2) appel du binaire statique
-    cmd = f"./assets/bin/nmap {args} {target}"
+    # On pointe datadir sur notre dossier nmap-data
+    data_dir = os.path.join(os.getcwd(), "assets", "share", "nmap-data")
+    cmd = f"./assets/bin/nmap --datadir {data_dir} {args} {target}"
     try:
-        output = subprocess.check_output(
-            cmd, shell=True, text=True, stderr=subprocess.STDOUT
-        )
-        return output
+        return subprocess.check_output(cmd, shell=True,
+                                       text=True, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         return e.output
 
 def render():
     st.header("📡 Scanning (Nmap statique)")
-    target = st.text_input("IP ou CIDR", key="scan_tgt")
-    if st.button("Run Nmap", key="scan_btn") and target:
-        out = _nmap_scan(target)
+    tgt = st.text_input("IP ou CIDR", key="scan_tgt")
+    if st.button("Run Nmap", key="scan_btn") and tgt:
+        out = _nmap_scan(tgt)
         st.code(out, language="text")
-        st.session_state.results.setdefault("scanning", {})[f"nmap:{target}"] = out
+        st.session_state.results.setdefault("scanning", {})[f"nmap:{tgt}"] = out
