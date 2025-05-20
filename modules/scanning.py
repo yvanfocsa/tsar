@@ -1,50 +1,26 @@
 import streamlit as st
-import nmap
-import subprocess
-import shlex
+import requests
 
-def _nmap_scan(target: str, args: str = "-sV -T4"):
-    try:
-        scanner = nmap.PortScanner()
-        scanner.scan(target, arguments=args)
-        return scanner[target]
-    except Exception as e:
-        return {"error": str(e)}
-
-
-def _nikto_like(url: str):
-    """
-    Run a Nikto-like web scan and return combined stdout and stderr.
-    """
-    cmd = f"nikto -host {shlex.quote(url)}"
-    try:
-        result = subprocess.run(
-            cmd, shell=True, text=True, capture_output=True, timeout=120
-        )
-        output = result.stdout.strip() if result.stdout else ""
-        error  = result.stderr.strip() if result.stderr else ""
-        # Combine stdout and stderr with an explicit "\n"
-        return (output + "\n" + error).strip()
-    except subprocess.TimeoutExpired as e:
-        return f"Scan timed out after {e.timeout} seconds"
-    except Exception as e:
-        return str(e)
-
+def nmap_api_scan(target: str):
+    url = f"https://api.hackertarget.com/nmap/?q={target}"
+    resp = requests.get(url, timeout=60)
+    return resp.text if resp.ok else f"Erreur API {resp.status_code}"
 
 def render():
     st.header("📡 Scanning")
-    tab1, tab2 = st.tabs(["Nmap", "Web Scan"])
+    tab1, tab2 = st.tabs(["Nmap API","Web Scan"])
 
     with tab1:
-        target = st.text_input("IP or CIDR", key="scan_tgt")
-        if st.button("Run Nmap", key="scan_btn") and target:
-            result = _nmap_scan(target)
-            st.session_state.results.setdefault("scanning", {})[f"nmap:{target}"] = result
-            st.json(result)
+        tgt = st.text_input("IP ou domaine", key="scan_tgt")
+        if st.button("Lancer Nmap API", key="scan_btn") and tgt:
+            out = nmap_api_scan(tgt)
+            st.code(out, language="text")
+            st.session_state.results.setdefault("scanning", {})[f"nmap:{tgt}"] = out
 
     with tab2:
-        url = st.text_input("URL for web scan", key="scan_url")
+        # votre code Web Scan actuel
+        url = st.text_input("URL pour Web Scan", key="scan_url")
         if st.button("Run Web Scan", key="scan_web_btn") and url:
-            out = _nikto_like(url)
-            st.session_state.results.setdefault("scanning_web", {})[f"nikto:{url}"] = out
+            out = nikto_like(url)  # ou pure-Python fallback
             st.text(out)
+            st.session_state.results.setdefault("scanning_web", {})[f"nikto:{url}"] = out
