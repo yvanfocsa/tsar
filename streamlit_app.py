@@ -1,9 +1,8 @@
+```python
 import streamlit as st
-from streamlit_lottie import st_lottie
-import requests
 from modules import recon, scanning, exploit, osint, reporting, reverse_shell
 
-# ——— Page configuration —————————————————————————————————————————
+# Page configuration
 st.set_page_config(
     page_title="Pentest Toolbox",
     page_icon="🛠️",
@@ -11,14 +10,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ——— Helper pour charger un Lottie via URL —————————————————————————————————
-def load_lottie(url: str):
-    r = requests.get(url)
-    if r.status_code == 200:
-        return r.json()
-    return {}
-
-# ——— AUTH (OIDC) —————————————————————————————————————————————————
+# ---------------------------- AUTH (OIDC) ----------------------------
 user = getattr(st, "user", None)
 if not user or not getattr(user, "is_logged_in", False):
     st.markdown(
@@ -53,11 +45,9 @@ if not user or not getattr(user, "is_logged_in", False):
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# ——— Sidebar : profil + déconnexion avec icône ——————————————————————————————
+# ---------------------------- Sidebar: profil + déconnexion ----------------------------
 with st.sidebar:
-    # Affiche nom d'utilisateur
     st.markdown(f"👤 **{st.user.get('name', 'Utilisateur')}**")
-    # Disposition colonne pour icône et bouton
     col_icon, col_btn = st.columns([1, 6])
     with col_icon:
         st.image("assets/logout.png", width=24)
@@ -65,7 +55,7 @@ with st.sidebar:
         if st.button("Se déconnecter"):
             st.logout()
 
-# ——— Sidebar : style + logo animé + menu de modules —————————————————————————————————
+# ---------------------------- Sidebar: logo + menu ----------------------------
 st.sidebar.markdown(
     """
     <style>
@@ -74,12 +64,8 @@ st.sidebar.markdown(
       background: linear-gradient(180deg,#0f1e2b,#162a3a);
       padding:1rem;
     }
-    /* Logo Lottie centré */
-    .sidebar-logo {
-      display:flex;
-      justify-content:center;
-      margin-bottom:1rem;
-    }
+    /* Logo centré */
+    .sidebar-logo { display:flex; justify-content:center; margin-bottom:1rem; }
     /* Menu modules stylé */
     .module-list { list-style:none; padding:0; margin:0; }
     .module-list li { margin:0.5rem 0; }
@@ -88,30 +74,23 @@ st.sidebar.markdown(
       padding:0.4rem 0.6rem; border-radius:6px;
       transition:background .2s;
     }
-    .module-list li label:hover {
-      background:rgba(255,255,255,0.05);
-    }
-    .module-list li input:checked + label {
-      background:#ff4b4b; color:#fff;
-    }
+    .module-list li label:hover { background:rgba(255,255,255,0.05); }
+    .module-list li input:checked + label { background:#ff4b4b; color:#fff; }
     .module-list li label span { margin-left:0.5rem; }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# Chargement et affichage du logo animé
-lottie_json = load_lottie("https://assets8.lottiefiles.com/packages/lf20_jcikwtux.json")
+# Affichage du logo statique
 st.sidebar.markdown('<div class="sidebar-logo">', unsafe_allow_html=True)
-st_lottie(lottie_json, height=100, key="side_logo")
+st.sidebar.image("assets/logo.png", width=150)
 st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
-# Liste des modules
+# Modules
 modules = ["Dashboard", "Recon", "Scanning", "Exploit", "OSINT", "Reporting", "Reverse Shell"]
-# Radio pour synchronisation (caché)
 current = st.sidebar.radio("", modules, index=0, label_visibility="collapsed")
 
-# Menu HTML
 st.sidebar.markdown("<ul class='module-list'>", unsafe_allow_html=True)
 for idx, m in enumerate(modules):
     checked = "checked" if m == current else ""
@@ -131,13 +110,11 @@ st.sidebar.markdown("</ul>", unsafe_allow_html=True)
 query = st.experimental_get_query_params().get("page", [None])[0]
 page = query if query in modules else current
 
-# ——— STATE INIT ——————————————————————————————————————————————————————
-def init_state():
-    if "results" not in st.session_state:
-        st.session_state.results = {}
-init_state()
+# ---------------------------- STATE INIT ----------------------------
+if "results" not in st.session_state:
+    st.session_state.results = {}
 
-# ——— ROUTING PRINCIPALE —————————————————————————————————————————————————
+# ---------------------------- Routing ----------------------------------
 def _extract_target(key: str) -> str:
     return key.split(":", 1)[1] if ":" in key else key
 
@@ -153,21 +130,16 @@ if page == "Dashboard":
                     st.json(data) if data else st.warning("Pas de données.")
     else:
         st.info("Aucun résultat. Lancez un module.")
-
 elif page == "Recon":
     recon.render()
-
 elif page == "Scanning":
     scanning.render()
-
 elif page == "Exploit":
     exploit.render()
-
 elif page == "OSINT":
     osint.render()
-
 elif page == "Reporting":
     reporting.render()
-
 else:
     reverse_shell.render()
+```
