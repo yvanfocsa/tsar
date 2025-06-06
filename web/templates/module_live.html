@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-screen-lg mx-auto space-y-6">
+
+  <h1 class="text-3xl font-bold">{{ mod.name }} – Exécuter</h1>
+
+  <!-- Cible + mode + boutons Exécuter/Stop -->
+  <div class="flex gap-4 mb-4">
+    <input id="targetInput" type="text" placeholder="Cible (IP / domaine)"
+           class="flex-1 px-4 py-2 rounded bg-[#111] border border-[#333] focus:ring-[var(--tsar-accent)]" />
+    <select id="modeSelect" class="px-3 py-2 rounded bg-[#111] border border-[#333] text-sm">
+      <option value="quick" selected>Rapide</option>
+      <option value="full">Complet</option>
+    </select>
+    <button id="runBtn" class="px-6 py-2 bg-[var(--tsar-accent)] text-black rounded hover:opacity-80">Exécuter</button>
+    <button id="stopBtn" class="px-6 py-2 bg-[#e84545] text-white rounded hover:opacity-80" disabled>Stop</button>
+  </div>
+
+  <!-- Terminal -->
+  <div class="terminal-wrapper bg-translucent rounded-lg shadow-lg overflow-hidden border border-[#333]">
+    <pre id="terminal"
+         class="terminal-output scrollbar-thin bg-black text-green-400 px-4 py-3 h-[460px] overflow-auto leading-relaxed"></pre>
+  </div>
+
+</div>
+
+<script>
+// Générer un identifiant unique pour chaque exécution
+function generateUuid() {
+  return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+}
+
+const btn = document.getElementById('runBtn');
+const stopBtn = document.getElementById('stopBtn');
+const term = document.getElementById('terminal');
+const inp = document.getElementById('targetInput');
+const mode = document.getElementById('modeSelect');
+let stream = null;
+let runUuid = null;
+
+// URL de base pour le stream
+const baseStreamUrl = {{ url_for('routes.module_stream', name=mod.name) | tojson }};
+// Fonction pour construire l'URL d'arrêt
+function getStopUrl(uuid) {
+  return "{{ url_for('routes.stop_module', name=mod.name, run_uuid='__UUID__') }}".replace("__UUID__", uuid);
+}
+
+// Bouton Exécuter
+btn.addEventListener('click', () => {
+  // Si un flux existant est déjà ouvert, on le ferme
+  if (stream) {
+    stream.close();
+  }
+
+  // Nouvelle exécution : on génère un UUID
+  runUuid = generateUuid();
+
+  // Reset du terminal et activation/désactivation des boutons
+  term.textContent = '';
+  btn.disabled = true;
+  stopBtn.disabled = false;
+
+  // Construire la query string : target, mode, run_uuid
+  const q = new URLSearchParams({
+    target:   inp.value.trim(),
+    mode:     mode.value,
+    run_uuid: runUuid,
+  }).toString();
+
+  stream = new EventSource(`${baseStreamUrl}?${q}`);
+  stream.onmessage = e => {
+    term.textContent += e.data + "\n";
+    term.parentElement.scrollTop = term.parentElement.scrollHeight;
+  };
+  stream.onerror = () => {
+    term.textContent += "\n✖ Fin du flux ou erreur.\n";
+    btn.disabled = false;
+    stopBtn.disabled = true;
+    if (stream) stream.close();
+  };
+});
+
+// Bouton “Stop” pour interrompre manuellement
+stopBtn.addEventListener('click', () => {
+  if (!runUuid) return;
+
+  // Ferme immédiatement le flux SSE dans le navigateur
+  if (stream) {
+    stream.close();
+  }
+
+  fetch(getStopUrl(runUuid), { method: 'POST' })
+    .then(() => {
+      term.textContent += "\n✖ Scan interrompu manuellement.\n";
+      btn.disabled = false;
+      stopBtn.disabled = true;
+    })
+    .catch(() => {
+      term.textContent += "\n⚠ Impossible d'envoyer la requête d'arrêt.\n";
+    });
+});
+
+// Si l’utilisateur ferme l’onglet ou navigue ailleurs, on ferme aussi le flux SSE
+window.addEventListener('beforeunload', () => {
+  if (stream) {
+    stream.close();
+  }
+  // Et on tente d'envoyer le kill en “background” via Beacon
+  if (runUuid) {
+    navigator.sendBeacon(getStopUrl(runUuid));
+  }
+});
+</script>
+{% endblock %}
+

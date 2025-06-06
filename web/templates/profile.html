@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12 space-y-12">
+  
+  <!-- Titre de la page -->
+  <div class="text-center">
+    <h1 class="text-4xl font-extrabold text-[var(--tsar-accent)] mb-4">
+      Paramètres du compte
+    </h1>
+    <p class="text-gray-400 text-lg">
+      Personnalisez votre profil TSAR
+    </p>
+  </div>
+
+  <!-- Carte principale du profil -->
+  <div class="bg-translucent rounded-3xl shadow-2xl overflow-hidden">
+    <div class="p-8">
+      
+      <!-- Photo de profil actuelle -->
+      <div class="flex flex-col items-center mb-8">
+        <div class="relative group">
+          <div class="w-32 h-32 rounded-full overflow-hidden bg-[var(--tsar-accent)] flex items-center justify-center shadow-xl">
+            {% if profile and profile.avatar_data %}
+              <img src="{{ url_for('routes.profile_avatar') }}" 
+                   alt="Photo de profil" 
+                   class="w-full h-full object-cover"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <span class="text-black font-bold text-4xl" style="display: none;">
+                {{ display_name[0].upper() if display_name else '?' }}
+              </span>
+            {% else %}
+              <span class="text-black font-bold text-4xl">
+                {{ display_name[0].upper() if display_name else '?' }}
+              </span>
+            {% endif %}
+          </div>
+          <div class="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+        </div>
+        <h2 class="text-2xl font-bold text-[var(--tsar-text)] mt-4">
+          {{ display_name }}
+        </h2>
+        <p class="text-gray-400">{{ email }}</p>
+      </div>
+
+      <!-- Formulaire de modification -->
+      <form action="{{ url_for('routes.update_profile') }}" 
+            method="post" 
+            enctype="multipart/form-data"
+            class="space-y-8">
+        
+        <!-- Nom d'affichage -->
+        <div class="space-y-2">
+          <label for="display_name" class="block text-lg font-semibold text-[var(--tsar-text)]">
+            Nom d'affichage
+          </label>
+          <input type="text" 
+                 id="display_name" 
+                 name="display_name"
+                 value="{{ profile.display_name if profile else display_name }}"
+                 placeholder="Votre nom tel qu'il apparaîtra"
+                 class="w-full px-4 py-3 bg-[#111] border border-[#333] rounded-xl text-[var(--tsar-text)] 
+                        focus:ring-2 focus:ring-[var(--tsar-accent)] focus:border-transparent
+                        transition-all duration-200">
+        </div>
+
+        <!-- Photo de profil -->
+        <div class="space-y-2">
+          <label for="avatar" class="block text-lg font-semibold text-[var(--tsar-text)]">
+            Photo de profil
+          </label>
+          <div class="flex items-center space-x-4">
+            <input type="file" 
+                   id="avatar" 
+                   name="avatar"
+                   accept="image/*"
+                   class="hidden">
+            <label for="avatar" 
+                   class="cursor-pointer inline-flex items-center gap-3 px-6 py-3 
+                          bg-[var(--tsar-card)] border-2 border-[var(--tsar-accent)] 
+                          text-[var(--tsar-accent)] rounded-xl hover:bg-[var(--tsar-accent)] 
+                          hover:text-black transition-all duration-200 font-medium">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Choisir une image
+            </label>
+            <span id="file-chosen" class="text-gray-400 text-sm">Aucun fichier sélectionné</span>
+          </div>
+          <p class="text-gray-500 text-sm">
+            Formats acceptés : JPG, PNG, GIF. Taille max : 5 MB.
+          </p>
+        </div>
+
+        <!-- Informations Auth0 (lecture seule) -->
+        <div class="bg-[#111] rounded-xl p-6 border border-[#333]">
+          <h3 class="text-xl font-semibold text-[var(--tsar-text)] mb-4">Informations du compte</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <span class="text-gray-400">Email :</span>
+              <span class="text-[var(--tsar-text)] ml-2">{{ email }}</span>
+            </div>
+            <div>
+              <span class="text-gray-400">ID utilisateur :</span>
+              <span class="text-[var(--tsar-text)] ml-2 font-mono text-xs">{{ current_user.sub }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section Sécurité -->
+        <div class="bg-[#111] rounded-xl p-6 border border-[#333]">
+          <h3 class="text-xl font-semibold text-[var(--tsar-text)] mb-4">Sécurité</h3>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between p-4 bg-[var(--tsar-card)] rounded-lg">
+              <div>
+                <h4 class="font-medium text-[var(--tsar-text)]">Authentification OAuth</h4>
+                <p class="text-gray-400 text-sm">Connecté via Auth0</p>
+              </div>
+              <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-green-500 text-sm font-medium">Activé</span>
+              </div>
+            </div>
+            
+            <div class="flex items-center justify-between p-4 bg-[var(--tsar-card)] rounded-lg">
+              <div>
+                <h4 class="font-medium text-[var(--tsar-text)]">Chiffrement des rapports</h4>
+                <p class="text-gray-400 text-sm">Tous vos rapports PDF sont chiffrés</p>
+              </div>
+              <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <span class="text-green-500 text-sm font-medium">Activé</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Statistiques personnelles -->
+        <div class="bg-[#111] rounded-xl p-6 border border-[#333]">
+          <h3 class="text-xl font-semibold text-[var(--tsar-text)] mb-4">Statistiques</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="text-center p-4 bg-[var(--tsar-card)] rounded-lg">
+              <div class="text-2xl font-bold text-[var(--tsar-accent)] mb-1">
+                <!-- Ici tu peux ajouter une variable pour compter les scans -->
+                {{ scan_count if scan_count is defined else '0' }}
+              </div>
+              <div class="text-gray-400 text-sm">Scans effectués</div>
+            </div>
+            <div class="text-center p-4 bg-[var(--tsar-card)] rounded-lg">
+              <div class="text-2xl font-bold text-[var(--tsar-accent)] mb-1">
+                {{ report_count if report_count is defined else '0' }}
+              </div>
+              <div class="text-gray-400 text-sm">Rapports générés</div>
+            </div>
+            <div class="text-center p-4 bg-[var(--tsar-card)] rounded-lg">
+              <div class="text-2xl font-bold text-[var(--tsar-accent)] mb-1">
+                {{ favorite_count if favorite_count is defined else '0' }}
+              </div>
+              <div class="text-gray-400 text-sm">Modules favoris</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="flex justify-end space-x-4 pt-6 border-t border-[#333]">
+          <button type="button" 
+                  onclick="window.history.back()"
+                  class="px-8 py-3 bg-transparent border-2 border-[#555] text-gray-400 
+                         rounded-xl hover:bg-[#555] hover:text-white transition-all duration-200">
+            Annuler
+          </button>
+          <button type="submit"
+                  class="px-8 py-3 bg-[var(--tsar-accent)] text-black font-bold rounded-xl 
+                         hover:bg-[var(--tsar-accent2)] transition-all duration-200 
+                         shadow-lg hover:shadow-xl transform hover:scale-105">
+            Sauvegarder
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Section de déconnexion -->
+  <div class="bg-translucent rounded-2xl p-6 border border-red-600">
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 class="text-xl font-semibold text-red-400 mb-2">Zone de danger</h3>
+        <p class="text-gray-400">Déconnectez-vous de votre session TSAR</p>
+      </div>
+      <a href="{{ url_for('routes.logout') }}" 
+         class="px-6 py-3 bg-red-600 text-white font-medium rounded-lg 
+                hover:bg-red-700 transition-all duration-200">
+        Se déconnecter
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+// Afficher le nom du fichier sélectionné
+document.getElementById('avatar').addEventListener('change', function(e) {
+  const fileChosen = document.getElementById('file-chosen');
+  const fileName = e.target.files[0]?.name;
+  fileChosen.textContent = fileName || 'Aucun fichier sélectionné';
+});
+
+// Animation au survol de la photo de profil
+document.querySelector('.group').addEventListener('mouseenter', function() {
+  this.querySelector('.absolute').style.opacity = '1';
+});
+
+document.querySelector('.group').addEventListener('mouseleave', function() {
+  this.querySelector('.absolute').style.opacity = '0';
+});
+</script>
+{% endblock %}

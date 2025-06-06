@@ -1,0 +1,228 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== PALETTE COLORS ===== */
+:root {
+  --tsar-bg:      #0f0f0f;
+  --tsar-card:    #1e1e1e;
+  --tsar-accent:  #e84545;
+  --tsar-accent2: #ff6666;
+  --tsar-text:    #e5e5e5;
+}
+
+/* ===== BASE ===== */
+body {
+  background: var(--tsar-bg);
+  color:      var(--tsar-text);
+  font-family: "Inter", "Segoe UI", sans-serif;
+  font-feature-settings: "ss01";
+}
+
+/* ===== UTILITY POUR FOND TRANSLUCIDE + FLOU ===== */
+.bg-translucent {
+  background-color: rgba(30, 30, 30, 0.6);
+  backdrop-filter: blur(8px);
+}
+
+/* ===== LIENS ===== */
+a {
+  color: var(--tsar-accent);
+  transition: color 0.2s;
+}
+a:hover {
+  color: var(--tsar-accent2);
+}
+
+/* ------------------------------------------------------------------
+   BOUTONS
+   Pour éviter que la règle générique <a:hover> ci-dessus ne recolore
+   nos boutons (qui sont souvent des <a>), on redéfinit
+   la couleur du texte de façon plus spécifique.
+------------------------------------------------------------------- */
+
+/* ===== BOUTONS GÉNÉRIQUES ===== */
+.btn {
+  @apply inline-block px-6 py-3
+         bg-[var(--tsar-accent)] text-black
+         rounded-lg font-semibold shadow-md
+         border-2 border-[var(--tsar-accent)]
+         transition-all duration-150;
+}
+.btn:hover {
+  @apply bg-[var(--tsar-accent2)] border-[var(--tsar-accent2)] text-black;
+}
+
+/* ===== BOUTONS SECONDAIRES ===== */
+.btn-secondary {
+  @apply inline-block px-6 py-3
+         bg-transparent text-[var(--tsar-accent)]
+         border-2 border-[var(--tsar-accent)]
+         rounded-lg font-semibold shadow-sm
+         transition-all;
+}
+.btn-secondary:hover {
+  @apply bg-[var(--tsar-accent)] text-black;
+}
+
+/* ------------------------------------------------------------------
+   Forcer les ancres ayant .btn ou .btn-anim à rester noires au hover
+------------------------------------------------------------------- */
+a.btn,
+a.btn:hover,
+a.btn-anim,
+a.btn-anim:hover {
+  color: #000 !important;
+}
+
+/* ------------------------------------------------------------------
+   Cas générique : tout lien ayant un fond accent / accent2 (utilisés
+   pour les boutons “Lancer” codés sans la classe .btn) garde
+   également le texte noir même au survol.
+------------------------------------------------------------------- */
+a.bg-\[var\(--tsar-accent\)\],
+a.bg-\[var\(--tsar-accent\)\]:hover,
+a.bg-\[var\(--tsar-accent2\)\],
+a.bg-\[var\(--tsar-accent2\)\]:hover {
+  color: #000 !important;
+}
+
+/* ===== ÉTOILE FAVORIS ===== */
+.fav-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  color: var(--tsar-accent) !important; /* toujours rouge */
+  outline: none !important;
+  box-shadow: none !important;
+  transition: transform 0.15s;
+}
+.fav-btn.outline {
+  color: transparent !important;
+  -webkit-text-stroke: 1px var(--tsar-accent);
+}
+.fav-btn.filled {
+  color: var(--tsar-accent) !important;
+}
+.fav-btn:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.fav-btn:hover {
+  transform: scale(1.15);
+}
+.fav-btn:active {
+  transform: scale(1.25);
+}
+
+/* ===== TERMINAL LIVE ===== */
+.terminal-wrapper {
+  background: #000;
+  height: 32rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 10px rgba(0,0,0,0.4);
+  overflow: hidden;
+}
+.terminal-output {
+  font-family: "Fira Code", "Courier New", monospace;
+  color: #3cff90;
+  padding: 1rem;
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+
+/* ===== SCROLLBAR THIN ===== */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 3px;
+}
+
+/* ===== SIDEBAR BUTTONS ===== */
+aside nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+aside nav a {
+  @apply btn;
+}
+/* Empêche le hover sur le lien actif */
+aside nav a.bg-\[var\(--tsar-accent\)\].text-black:hover {
+  background-color: var(--tsar-accent) !important;
+  border-color: var(--tsar-accent) !important;
+  cursor: default;
+}
+
+/* ===== VEILLE – SÉPARATION DES PARAGRAPHS ===== */
+.veille-summary p {
+  border-bottom: 1px solid var(--tsar-accent);
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+}
+.veille-summary p:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* ===== RAPPORTS – ÉVITER LE DÉBORDEMENT ===== */
+.report-card {
+  overflow: hidden;
+  max-width: 100%;
+}
+.report-card h3 {
+  overflow-wrap: break-word;
+}
+
+/* ===== MODULES PAGE (CARDS + BOUTON LANCER) ===== */
+@layer components {
+  /* ────────────────────────────────────────────── *
+   *   Carte “module” sous forme de bulle floutée   *
+   * ────────────────────────────────────────────── */
+  .module-card {
+    @apply bg-translucent rounded-3xl
+           shadow-lg overflow-hidden
+           transform transition-transform
+           duration-300 ease-in-out;
+  }
+  .module-card:hover {
+    @apply shadow-2xl -translate-y-1;
+  }
+
+  /* Titre de la carte – basique, puis accentué au hover */
+  .module-card h3 {
+    @apply text-[var(--tsar-text)] transition-colors
+           duration-200 ease-in-out;
+  }
+  .module-card:hover h3 {
+    @apply text-[var(--tsar-accent)];
+  }
+
+  /* Description – retour à la ligne si un mot trop long */
+  .module-card p {
+    overflow-wrap: break-word;
+  }
+
+  /* Lien “Lancer” dans chaque carte */
+  .btn-anim {
+    @apply inline-flex items-center gap-2
+           px-5 py-2 bg-[var(--tsar-accent)]
+           text-black font-semibold rounded-2xl
+           shadow-md transition-all duration-200
+           ease-in-out transform;
+  }
+  .btn-anim:hover {
+    @apply bg-[var(--tsar-accent2)] text-black
+           shadow-xl scale-105;
+  }
+  .btn-anim:focus {
+    @apply outline-none ring-2 ring-[var(--tsar-accent)];
+  }
+}
+

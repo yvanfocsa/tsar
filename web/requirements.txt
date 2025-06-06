@@ -1,0 +1,14 @@
+Flask==3.0.3
+Authlib==1.6.0
+Flask-Login==0.6.3
+Flask-SQLAlchemy==3.1.1
+pdfkit==1.0.0
+cryptography==42.0.7
+psycopg[binary]==3.1.18
+docker==7.1.0
+psutil==5.9.8
+requests==2.31.0
+feedparser==6.0.10
+celery==5.4.0
+redis==5.0.4
+beautifulsoup4==4.12.2

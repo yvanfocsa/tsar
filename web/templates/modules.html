@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-6 py-12">
+  {% if cats %}
+    {% for category, mods in cats.items() %}
+      <h2 class="text-3xl font-bold text-[var(--tsar-text)] mb-6">{{ category }}</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+        {% for m in mods %}
+          {# On ignore “Rapport – Génération” en filtrant à l’affichage #}
+          {% if m.name != 'Rapport – Génération' %}
+            <div class="bg-translucent p-6 rounded-lg shadow-md flex flex-col justify-between hover:shadow-xl transition">
+              <div>
+                <h3 class="text-2xl font-semibold mb-2 text-[var(--tsar-text)]">{{ m.name }}</h3>
+                <p class="text-gray-400 text-sm leading-relaxed">{{ m.description }}</p>
+              </div>
+              <div class="mt-4 flex items-center justify-between">
+                {# Choix du lien selon le module #}
+                {% if m.name == 'CVE Analysis – IA' %}
+                  <a href="{{ url_for('routes.module_form', name=m.name) }}"
+                     class="inline-block px-6 py-2 bg-[var(--tsar-accent)] text-black font-medium rounded-lg hover:bg-[var(--tsar-accent2)] transition whitespace-nowrap">
+                    Lancer Analyse
+                  </a>
+                {% else %}
+                  <a href="{{ url_for('routes.module_live', name=m.name) }}"
+                     class="inline-block px-6 py-2 bg-[var(--tsar-accent)] text-black font-medium rounded-lg hover:bg-[var(--tsar-accent2)] transition">
+                    Lancer
+                  </a>
+                {% endif %}
+
+                <button hx-post="{{ url_for('routes.toggle_favorite', name=m.name) }}"
+                        hx-swap="outerHTML"
+                        class="fav-btn {% if m.name in session.get('favorites', []) %}filled{% else %}outline{% endif %}"
+                        title="Ajouter/retirer des favoris">
+                  {% if m.name in session.get('favorites', []) %}★{% else %}☆{% endif %}
+                </button>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="text-gray-400 text-center">Aucun module disponible.</p>
+  {% endif %}
+</div>
+{% endblock %}

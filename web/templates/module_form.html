@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block content %}
+  {% if mod.name == 'Rapport – Génération' %}
+    <!-- Générateur de Rapport -->
+    <div class="max-w-3xl mx-auto py-12">
+      <div class="bg-translucent p-10 rounded-3xl shadow-2xl">
+        <h1 class="text-4xl font-extrabold mb-6 text-[var(--tsar-accent)] text-center">
+          Générateur de Rapport
+        </h1>
+        <p class="text-gray-400 mb-8 text-center">
+          Sélectionnez la cible et les sections à inclure, puis cliquez sur Générer.
+        </p>
+
+        <form action="{{ url_for('routes.module_run', name=mod.name) }}"
+              method="post"
+              class="space-y-8">
+
+          <!-- Sélecteur de cibles existantes -->
+          <div>
+            <label for="target"
+                   class="block text-sm font-medium mb-2 text-gray-200">
+              Cible
+            </label>
+            <select name="target"
+                    id="target"
+                    required
+                    class="w-full px-4 py-2 bg-[#111] border border-[#333] rounded focus:ring-[var(--tsar-accent)]">
+              {% if target_list %}
+                {% for t in target_list %}
+                  <option value="{{ t }}">{{ t }}</option>
+                {% endfor %}
+              {% else %}
+                <option disabled selected>Aucune cible enregistrée</option>
+              {% endif %}
+            </select>
+          </div>
+
+          <!-- Cases à cocher pour les sections -->
+          <div>
+            <h2 class="text-xl font-semibold text-gray-200 mb-4">Sections du rapport</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {% for section in mod.schema[1].choices %}
+                <label class="flex items-center p-4 bg-[#1e1e1e] hover:bg-[#2a2a2a] rounded-lg cursor-pointer transition">
+                  <input type="checkbox"
+                         name="sections"
+                         value="{{ section }}"
+                         checked
+                         class="h-6 w-6 text-[var(--tsar-accent)] rounded focus:ring-[var(--tsar-accent)]">
+                  <span class="ml-4 text-lg text-gray-200 font-medium capitalize">
+                    {{ section }}
+                  </span>
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Bouton Générer -->
+          <div class="pt-6 border-t border-[#333] flex justify-center">
+            <button type="submit"
+                    class="flex items-center gap-3 px-10 py-3 bg-[var(--tsar-accent)] text-black font-bold rounded-2xl shadow-lg hover:bg-[var(--tsar-accent2)] transition">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   class="h-6 w-6"
+                   fill="none"
+                   viewBox="0 0 24 24"
+                   stroke="currentColor">
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 13l4 4L19 7" />
+              </svg>
+              Générer PDF
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  {% elif mod.name == 'CVE Analysis – IA' %}
+    <!-- CVE Analysis – IA -->
+    <div class="max-w-3xl mx-auto py-12">
+      <div class="bg-translucent p-8 rounded-2xl shadow-lg">
+        <h1 class="text-4xl font-bold mb-4 text-[var(--tsar-accent)]">
+          CVE Analysis – IA
+        </h1>
+        <p class="text-gray-400 mb-6">
+          Soumettez un identifiant CVE pour un résumé et mitigation.
+        </p>
+        <form action="{{ url_for('routes.module_run', name=mod.name) }}"
+              method="post"
+              class="space-y-6">
+          <div>
+            <label for="cve"
+                   class="block text-sm font-medium mb-2 text-gray-200">
+              CVE
+            </label>
+            <input type="text"
+                   name="cve"
+                   id="cve"
+                   placeholder="Ex. CVE-2023-1234"
+                   required
+                   class="w-full px-4 py-2 bg-[#111] border border-[#333] rounded focus:ring-[var(--tsar-accent)]">
+          </div>
+          <div class="pt-4 border-t border-[#333] flex justify-end">
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-8 py-3 bg-[var(--tsar-accent)] text-black font-bold rounded-lg hover:bg-[var(--tsar-accent2)] transition">
+              Lancer Analyse
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  {% else %}
+    <!-- Terminal live pour tous les autres modules -->
+    <div class="max-w-2xl mx-auto p-6 bg-translucent rounded-lg shadow-md">
+      <h1 class="text-3xl font-bold mb-6">{{ mod.name }} – Exécuter</h1>
+      <div class="flex gap-4 mb-4">
+        <input id="targetInput"
+               type="text"
+               placeholder="Cible (IP / domaine)"
+               class="flex-1 px-4 py-2 rounded bg-[#111] border border-[#333] focus:ring-[var(--tsar-accent)]">
+        <select id="modeSelect"
+                class="px-3 py-2 rounded bg-[#111] border border-[#333]">
+          <option value="quick" selected>Rapide</option>
+          <option value="full">Complet</option>
+        </select>
+        <button id="runBtn" class="btn">Exécuter</button>
+      </div>
+      <div class="terminal-wrapper bg-translucent rounded-lg shadow-lg overflow-hidden border border-[#333]">
+        <pre id="terminal" class="terminal-output scrollbar-thin h-64"></pre>
+      </div>
+    </div>
+
+    <script>
+      const btn = document.getElementById('runBtn');
+      const term = document.getElementById('terminal');
+      const inp = document.getElementById('targetInput');
+      const mode = document.getElementById('modeSelect');
+      const streamBase = {{ url_for('routes.module_stream', name=mod.name) | tojson }};
+      let stream;
+
+      btn.addEventListener('click', () => {
+        const q = new URLSearchParams({
+          target: inp.value.trim(),
+          mode:   mode.value
+        }).toString();
+        btn.disabled = true;
+        term.textContent = '';
+        if (stream) stream.close();
+        stream = new EventSource(`${streamBase}?${q}`);
+        stream.onmessage = e => {
+          term.textContent += e.data + "\n";
+          term.parentElement.scrollTop = term.parentElement.scrollHeight;
+        };
+        stream.onerror = () => {
+          term.textContent += "\n✖ Fin du flux.\n";
+          btn.disabled = false;
+          stream.close();
+        };
+      });
+    </script>
+  {% endif %}
+{% endblock %}

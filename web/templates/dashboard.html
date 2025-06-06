@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- ===== MÉTRIQUES SYSTÈME ===== -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
+  <!-- RAM : petit gauge circulaire -->
+  <div class="bg-translucent p-4 rounded-lg shadow-md border-l-4 border-[var(--tsar-accent)] flex flex-col justify-center items-center">
+    <p class="text-xs uppercase text-gray-400 tracking-wider mb-1 text-center">RAM</p>
+    <div class="relative w-24 h-24">
+      <canvas id="ramGaugeSmall"></canvas>
+      <span id="ramGaugeTextSmall"
+            class="absolute inset-0 flex items-center justify-center text-base font-bold text-[var(--tsar-accent)]">
+      </span>
+    </div>
+  </div>
+
+  <!-- IP publique -->
+  <div class="bg-translucent p-5 rounded-lg shadow-md border-l-4 border-[var(--tsar-accent)] flex flex-col justify-center items-center">
+    <p class="text-xs uppercase text-gray-400 tracking-wider text-center">IP publique</p>
+    <p class="text-2xl font-semibold mt-1 text-center">{{ metrics["IP publique"] }}</p>
+  </div>
+
+  <!-- IP privée -->
+  <div class="bg-translucent p-5 rounded-lg shadow-md border-l-4 border-[var(--tsar-accent)] flex flex-col justify-center items-center">
+    <p class="text-xs uppercase text-gray-400 tracking-wider text-center">IP privée</p>
+    <p class="text-2xl font-semibold mt-1 text-center">{{ metrics["IP privée"] }}</p>
+  </div>
+</div>
+
+
+<!-- ===== FAVORIS ===== -->
+<div class="bg-translucent p-6 rounded-lg shadow-md mb-8">
+  <h2 class="text-xl font-semibold mb-4">Favoris</h2>
+
+  {% if favoris %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for m in favoris %}
+    <a href="{{ url_for('routes.module_live', name=m.name) }}"
+       class="fav-card block bg-translucent p-5 rounded-lg shadow-inner">
+      <h3 class="font-semibold text-lg text-[var(--tsar-text)]">{{ m.name }}</h3>
+      <p class="text-gray-400 text-sm mt-1">{{ m.description }}</p>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+    <p class="text-gray-400">Aucun favori. Ajoutez-en via les modules (☆).</p>
+  {% endif %}
+</div>
+
+
+<!-- ===== HISTORIQUE ===== -->
+<div class="bg-translucent p-6 rounded-lg shadow-md">
+  <h2 class="text-xl font-semibold mb-4">Historique (10 dernières actions)</h2>
+
+  {% if logs %}
+  <ul class="space-y-3">
+    {% for entry in logs %}
+    <li class="flex justify-between items-start">
+      <div class="space-y-1">
+        <div class="text-[var(--tsar-text)]">
+          <span class="font-medium">{{ entry.module }}</span>
+          {% if entry.target %}
+            sur <code class="bg-[#111] px-1 rounded">{{ entry.target }}</code>
+          {% endif %}
+          ({{ entry.mode }})
+        </div>
+        <div class="text-gray-400 text-sm">
+          {{ entry.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+        </div>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+    <p class="text-gray-400">Aucune action récente.</p>
+  {% endif %}
+</div>
+
+<!-- ===== Chart.js pour le petit gauge RAM ===== -->
+<script>
+(() => {
+  const ctx = document.getElementById('ramGaugeSmall');
+  if (!ctx) return;
+
+  const txt = document.getElementById('ramGaugeTextSmall');
+
+  const gauge = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Used', 'Free'],
+      datasets: [{
+        data: [0, 100],
+        backgroundColor: [
+          'rgba(232,69,69,0.9)',
+          'rgba(255,255,255,0.1)'
+        ],
+        borderWidth: 0,
+        cutout: '70%'
+      }]
+    },
+    options: {
+      animation: {
+        animateRotate: true,
+        duration: 800,
+        easing: 'easeOutCubic'
+      },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } }
+    }
+  });
+
+  async function refreshRam() {
+    try {
+      const res = await fetch('{{ url_for("routes.metrics_ram_json") }}');
+      const { used, total } = await res.json();
+      const pct = Math.round((used / total) * 100);
+
+      gauge.data.datasets[0].data[0] = pct;
+      gauge.data.datasets[0].data[1] = 100 - pct;
+      txt.textContent = pct + '%';
+      gauge.update();
+    } catch (err) {
+      console.error('RAM refresh failed', err);
+    }
+  }
+
+  refreshRam();
+  setInterval(refreshRam, 1000);
+})();
+</script>
+
+{% endblock %}
+

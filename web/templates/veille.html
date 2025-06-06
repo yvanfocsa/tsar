@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-5xl mx-auto py-12 space-y-10">
+  <h1 class="text-5xl font-bold text-center mb-10 text-[var(--tsar-accent)]">Veille Cyber</h1>
+
+  {% if articles %}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+      {% for article in articles %}
+      <div class="bg-[var(--tsar-card)] rounded-3xl shadow-2xl border border-[#333] overflow-hidden">
+        <article class="flex flex-col gap-6 p-6">
+          {% if article.image_url %}
+          <div class="w-full h-48 bg-[#111] overflow-hidden rounded-t-lg">
+            <img src="{{ article.image_url }}" alt="{{ article.title }}" class="w-full h-full object-cover">
+          </div>
+          {% endif %}
+
+          <a href="{{ article.link }}" target="_blank"
+             class="text-2xl font-bold text-[var(--tsar-accent)] hover:underline">
+            {{ article.title }}
+          </a>
+
+          {% if article.published %}
+          <p class="text-gray-500 italic text-sm">{{ article.published }}</p>
+          {% endif %}
+
+          <div class="text-gray-200 text-base leading-relaxed whitespace-pre-line">
+            {{ article.summary|safe }}
+          </div>
+
+          {% if article.source %}
+          <p class="text-gray-400 text-sm">Source : {{ article.source }}</p>
+          {% endif %}
+        </article>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-center text-gray-400">Aucun article trouvé.</p>
+  {% endif %}
+</div>
+
+{% endblock %}
+

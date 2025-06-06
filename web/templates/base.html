@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr" class="h-full" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>TSAR Toolbox</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <!-- htmx & Tailwind -->
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: "class" };</script>
+
+  <!-- Styles & Assets -->
+  <link href="{{ url_for('static', filename='css/tsar.css') }}" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Vanta Topology Animated Background -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.21/dist/vanta.topology.min.js"></script>
+</head>
+
+<body class="flex h-screen relative overflow-hidden">
+
+  <!-- VANTA BACKGROUND -->
+  <div id="vanta-bg" class="fixed inset-0" style="z-index: -1;"></div>
+
+  <!-- SIDEBAR FIXE -->
+  <aside id="sidebar"
+         class="fixed inset-y-0 left-0 w-[300px] bg-[var(--tsar-card)] z-20 flex flex-col justify-between overflow-hidden">
+    <!-- Contenu de la sidebar -->
+    <div id="sidebar-content" class="flex flex-col justify-between flex-1">
+      <!-- Haut : logo -->
+      <div class="pt-4 pb-2 flex flex-col items-center space-y-1">
+        <a href="{{ url_for('routes.index') }}">
+          <img src="{{ url_for('static', filename='logo.png') }}"
+               alt="Logo TSAR"
+               class="logo-xl rounded-full">
+        </a>
+      </div>
+
+      <!-- Milieu : navigation principale -->
+      <nav class="mt-4 space-y-1 px-2 flex-1">
+        <a href="{{ url_for('routes.index') }}"
+           class="block px-4 py-2 rounded-lg {{ 'bg-[var(--tsar-accent)] text-black' if request.path=='/' else 'hover:bg-[#1d2530]' }}">
+          Dashboard
+        </a>
+        <a href="{{ url_for('routes.modules_home') }}"
+           class="block px-4 py-2 rounded-lg {{ 'bg-[var(--tsar-accent)] text-black' if '/modules' in request.path else 'hover:bg-[#1d2530]' }}">
+          Modules
+        </a>
+        <a href="{{ url_for('routes.reports') }}"
+           class="block px-4 py-2 rounded-lg {{ 'bg-[var(--tsar-accent)] text-black' if '/reports' in request.path else 'hover:bg-[#1d2530]' }}">
+          Rapports
+        </a>
+        <a href="{{ url_for('routes.scheduled_tasks') }}"
+           class="block px-4 py-2 rounded-lg {{ 'bg-[var(--tsar-accent)] text-black' if '/scheduled' in request.path else 'hover:bg-[#1d2530]' }}">
+          Tâches planifiées
+        </a>
+        <a href="{{ url_for('routes.veille') }}"
+           class="block px-4 py-2 rounded-lg {{ 'bg-[var(--tsar-accent)] text-black' if '/veille' in request.path else 'hover:bg-[#1d2530]' }}">
+          Veille
+        </a>
+        <a href="{{ url_for('routes.profile') }}"
+           class="block px-4 py-2 rounded-lg {{ 'bg-[var(--tsar-accent)] text-black' if '/profile' in request.path else 'hover:bg-[#1d2530]' }}">
+          Paramètres
+        </a>
+      </nav>
+
+      <!-- Bas : photo + pseudo utilisateur -->
+      <div class="pb-6 flex flex-col items-center space-y-3">
+        <!-- Photo de profil -->
+        <div class="w-16 h-16 rounded-full overflow-hidden bg-[var(--tsar-accent)] flex items-center justify-center">
+          <img src="{{ url_for('routes.profile_avatar') }}" 
+               alt="Avatar" 
+               class="w-full h-full object-cover"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="w-full h-full flex items-center justify-center text-black font-bold text-xl" style="display: none;">
+            {{ display_name[0].upper() if display_name else '?' }}
+          </div>
+        </div>
+        <!-- Nom utilisateur -->
+        <span class="text-[var(--tsar-accent)] font-semibold text-base tracking-wide text-center">
+          {{ display_name }}
+        </span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT PLEIN ÉCRAN -->
+  <main id="main-content" class="ml-[300px] flex-1 p-6 overflow-auto scrollbar-thin z-10">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Init Vanta Topology -->
+  <script>
+    VANTA.TOPOLOGY({
+      el: "#vanta-bg",
+      mouseControls: true,
+      touchControls: true,
+      gyroControls: false,
+      minHeight: 200.00,
+      minWidth: 200.00,
+      scale: 1.00,
+      scaleMobile: 1.00,
+      color: 0xcf3737,
+      backgroundColor: 0x0f0f0f
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto py-12 space-y-12">
+
+  {# ===== TITRE ===== #}
+  <h1 class="text-4xl font-extrabold text-[var(--tsar-accent)] mb-6 text-center">
+    Mes Rapports & Générateur
+  </h1>
+
+  {# ===== FORMULAIRE “Générateur de Rapport” ===== #}
+  {% if mod_report %}
+    <div class="bg-[var(--tsar-card)] p-8 rounded-3xl shadow-2xl">
+      <h2 class="text-2xl font-bold mb-4 text-[var(--tsar-accent)]">Générateur de Rapport</h2>
+      <p class="text-gray-400 mb-6">
+        Sélectionnez la cible et les sections à inclure, puis cliquez sur Générer.
+      </p>
+
+      <form action="{{ url_for('routes.module_run', name=mod_report.name) }}"
+            method="post"
+            class="space-y-8">
+
+        {# Sélecteur de cibles existantes #}
+        <div>
+          <label for="target"
+                 class="block text-sm font-medium mb-2 text-gray-200">
+            Cible
+          </label>
+          <select name="target"
+                  id="target"
+                  required
+                  class="w-full px-4 py-2 bg-[#111] border border-[#333] rounded focus:ring-[var(--tsar-accent)]">
+            {% if target_list %}
+              {% for t in target_list %}
+                <option value="{{ t }}">{{ t }}</option>
+              {% endfor %}
+            {% else %}
+              <option disabled selected>Aucune cible enregistrée</option>
+            {% endif %}
+          </select>
+        </div>
+
+        {# Cases à cocher “Sections du rapport” #}
+        <div>
+          <h3 class="text-xl font-semibold text-gray-200 mb-4">Sections du rapport</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {% for section in mod_report.schema[1].choices %}
+              <label class="flex items-center p-4 bg-[#1e1e1e] hover:bg-[#2a2a2a] rounded-lg cursor-pointer transition">
+                <input type="checkbox"
+                       name="sections"
+                       value="{{ section }}"
+                       checked
+                       class="h-6 w-6 text-[var(--tsar-accent)] rounded focus:ring-[var(--tsar-accent)]">
+                <span class="ml-4 text-lg text-gray-200 font-medium capitalize">
+                  {{ section }}
+                </span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        {# Bouton Générer #}
+        <div class="pt-6 border-t border-[#333] flex justify-center">
+          <button type="submit"
+                  class="flex items-center gap-3 px-10 py-3 bg-[var(--tsar-accent)] text-black font-bold rounded-2xl shadow-lg hover:bg-[var(--tsar-accent2)] transition">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 class="h-6 w-6"
+                 fill="none"
+                 viewBox="0 0 24 24"
+                 stroke="currentColor">
+              <path stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7" />
+            </svg>
+            Générer PDF
+          </button>
+        </div>
+      </form>
+    </div>
+  {% else %}
+    <p class="text-center text-gray-400">Module “Générateur de Rapport” introuvable.</p>
+  {% endif %}
+
+  {# ===== LISTE DES RAPPORTS EXISTANTS ===== #}
+  <div class="bg-[var(--tsar-card)] p-8 rounded-3xl shadow-2xl">
+    <h2 class="text-2xl font-semibold mb-6 text-[var(--tsar-accent)]">Mes Rapports</h2>
+
+    {% if reports %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        {% for r in reports %}
+          <div class="bg-[#111] p-6 rounded-2xl shadow-inner hover:shadow-lg transition flex flex-col justify-between max-w-sm overflow-hidden">
+            <div>
+              <h3 class="text-xl font-semibold text-[var(--tsar-text)] mb-2 break-words">
+                {{ r.filename }}
+              </h3>
+              <p class="text-gray-400 text-sm">Généré le {{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+            </div>
+            <div class="mt-4 flex justify-end">
+              <a href="{{ url_for('routes.download_report', rid=r.id) }}"
+                 class="inline-flex items-center gap-2 px-4 py-2 bg-[var(--tsar-accent)] text-black font-medium rounded-lg
+                        hover:bg-[var(--tsar-accent2)] hover:text-black transition btn-anim">
+                <!-- Nouvelle icône “flèche vers le bas dans un tiroir” -->
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="h-5 w-5"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                  <!-- Tiroir -->
+                  <path d="M3 20h18" />
+                  <path d="M12 3v14" />
+                  <!-- Flèche vers le bas -->
+                  <path d="M8 13l4 4 4-4" />
+                </svg>
+                Télécharger
+              </a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="bg-[#111] p-8 rounded-2xl shadow-inner text-center text-gray-400">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             class="mx-auto h-12 w-12 text-gray-500 mb-4"
+             fill="none"
+             viewBox="0 0 24 24"
+             stroke="currentColor">
+          <path stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 17v-6a2 2 0 012-2h2a2 2 0 012 2v6m4 0v-2a4 4 0 00-3-3.87M5 17v-2a4 4 0 013-3.87" />
+        </svg>
+        <p>Vous n'avez aucun rapport pour le moment.<br>
+           Utilisez le générateur ci-dessus pour en créer.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
