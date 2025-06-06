@@ -8,6 +8,20 @@
     Mes Rapports & Générateur
   </h1>
 
+  {# ===== ZONE DE NOTIFICATION (pour le polling) ===== #}
+  <div id="notification-zone" 
+       class="hidden fixed top-5 right-5 bg-translucent p-4 rounded-lg shadow-lg border-l-4 border-[var(--tsar-accent)] z-50">
+    <div class="flex items-center">
+      <!-- Spinner -->
+      <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-[var(--tsar-accent)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <!-- Message -->
+      <span id="notification-message" class="text-white">Génération du rapport en cours...</span>
+    </div>
+  </div>
+
   {# ===== FORMULAIRE “Générateur de Rapport” ===== #}
   {% if mod_report %}
     <div class="bg-[var(--tsar-card)] p-8 rounded-3xl shadow-2xl">
@@ -16,7 +30,9 @@
         Sélectionnez la cible et les sections à inclure, puis cliquez sur Générer.
       </p>
 
-      <form action="{{ url_for('routes.module_run', name=mod_report.name) }}"
+      <!-- On ajoute un ID au formulaire pour le cibler en JS -->
+      <form id="report-generator-form"
+            action="{{ url_for('routes.module_run', name=mod_report.name) }}"
             method="post"
             class="space-y-8">
 
@@ -62,7 +78,8 @@
         {# Bouton Générer #}
         <div class="pt-6 border-t border-[#333] flex justify-center">
           <button type="submit"
-                  class="flex items-center gap-3 px-10 py-3 bg-[var(--tsar-accent)] text-black font-bold rounded-2xl shadow-lg hover:bg-[var(--tsar-accent2)] transition">
+                  id="generate-btn"
+                  class="flex items-center gap-3 px-10 py-3 bg-[var(--tsar-accent)] text-black font-bold rounded-2xl shadow-lg hover:bg-[var(--tsar-accent2)] transition disabled:opacity-50 disabled:cursor-not-allowed">
             <svg xmlns="http://www.w3.org/2000/svg"
                  class="h-6 w-6"
                  fill="none"
@@ -100,7 +117,6 @@
               <a href="{{ url_for('routes.download_report', rid=r.id) }}"
                  class="inline-flex items-center gap-2 px-4 py-2 bg-[var(--tsar-accent)] text-black font-medium rounded-lg
                         hover:bg-[var(--tsar-accent2)] hover:text-black transition btn-anim">
-                <!-- Nouvelle icône “flèche vers le bas dans un tiroir” -->
                 <svg xmlns="http://www.w3.org/2000/svg"
                      class="h-5 w-5"
                      viewBox="0 0 24 24"
@@ -109,10 +125,8 @@
                      stroke-width="2"
                      stroke-linecap="round"
                      stroke-linejoin="round">
-                  <!-- Tiroir -->
                   <path d="M3 20h18" />
                   <path d="M12 3v14" />
-                  <!-- Flèche vers le bas -->
                   <path d="M8 13l4 4 4-4" />
                 </svg>
                 Télécharger
@@ -139,5 +153,83 @@
     {% endif %}
   </div>
 </div>
-{% endblock %}
 
+<!-- On ajoute le script de polling ici -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('report-generator-form');
+  const generateBtn = document.getElementById('generate-btn');
+  const notificationZone = document.getElementById('notification-zone');
+  const notificationMessage = document.getElementById('notification-message');
+
+  form.addEventListener('submit', function(event) {
+    // 1. Empêcher la soumission classique du formulaire
+    event.preventDefault();
+    
+    // Désactiver le bouton pour éviter les clics multiples
+    generateBtn.disabled = true;
+
+    // Afficher la notification
+    notificationMessage.textContent = 'Génération du rapport en cours...';
+    notificationZone.classList.remove('hidden');
+
+    // 2. Envoyer les données du formulaire en AJAX
+    const formData = new FormData(form);
+    fetch(form.action, {
+      method: 'POST',
+      body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+      // 3. On a reçu le job_id, on commence le polling
+      const jobId = data.job_id;
+      pollJobStatus(jobId);
+    })
+    .catch(error => {
+      console.error('Erreur lors de la soumission:', error);
+      notificationMessage.textContent = 'Erreur de soumission.';
+      // Réactiver le bouton en cas d'erreur
+      setTimeout(() => {
+        notificationZone.classList.add('hidden');
+        generateBtn.disabled = false;
+      }, 3000);
+    });
+  });
+
+  function pollJobStatus(jobId) {
+    const interval = setInterval(() => {
+      fetch(`/job/status/${jobId}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.state === 'SUCCESS') {
+            // 4. La tâche est terminée !
+            clearInterval(interval);
+            notificationMessage.textContent = 'Rapport généré avec succès ! Rechargement...';
+            // Recharger la page pour afficher le nouveau rapport
+            setTimeout(() => window.location.reload(), 1500);
+          } else if (data.state === 'FAILURE') {
+            // La tâche a échoué
+            clearInterval(interval);
+            notificationMessage.textContent = 'Erreur lors de la génération du rapport.';
+            console.error('Erreur de la tâche Celery:', data.error);
+            setTimeout(() => {
+              notificationZone.classList.add('hidden');
+              generateBtn.disabled = false;
+            }, 3000);
+          }
+          // Si PENDING ou STARTED, on ne fait rien et on attend le prochain poll
+        })
+        .catch(error => {
+          console.error('Erreur de polling:', error);
+          clearInterval(interval);
+          notificationMessage.textContent = 'Erreur de communication.';
+          setTimeout(() => {
+            notificationZone.classList.add('hidden');
+            generateBtn.disabled = false;
+          }, 3000);
+        });
+    }, 3000); // On vérifie toutes les 3 secondes
+  }
+});
+</script>
+{% endblock %}

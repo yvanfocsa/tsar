@@ -301,23 +301,39 @@ def module_run(name: str):
     if not mod:
         abort(404)
 
-    if request.is_json:
-        params: dict[str, Any] = request.get_json() or {}
-    else:
-        params = {
-            field["name"]: (
-                request.form.getlist(field["name"])
-                if field["type"] == "multiselect"
-                else request.form.get(field["name"], "")
-            )
-            for field in mod.get("schema", [])
-        }
+    # La soumission se fait maintenant via AJAX, on récupère les données du formulaire
+    params = {
+        field["name"]: (
+            request.form.getlist(field["name"])
+            if field["type"] == "multiselect"
+            else request.form.get(field["name"], "")
+        )
+        for field in mod.get("schema", [])
+    }
 
     job = current_app.celery.send_task("tsar.run_job",
                                        args=[name, params, current_user.sub])
 
-    is_ajax = request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest"
-    return jsonify({"job_id": job.id}) if is_ajax else redirect(url_for("routes.reports"))
+    # On renvoie toujours le job_id pour que le JavaScript puisse poller
+    return jsonify({"job_id": job.id})
+
+# ─────────── JOB STATUS (pour le polling) ───────────
+@bp.route("/job/status/<job_id>")
+@login_required
+def job_status(job_id: str):
+    """Vérifie l'état d'une tâche Celery."""
+    from celery.result import AsyncResult
+    task = AsyncResult(job_id, app=current_app.celery)
+    
+    response = {
+        "state": task.state,
+        "result": task.result if task.state == 'SUCCESS' else None,
+    }
+    
+    if task.state == 'FAILURE':
+        response['error'] = str(task.info)
+
+    return jsonify(response)
 
 # ─────────── PDF REPORTS ───────────
 @bp.route("/reports")
@@ -360,8 +376,6 @@ def download_report(rid: int):
 @login_required
 def profile():
     """Page de paramètres du compte utilisateur."""
-    # Le context_processor s'occupe de 'display_name' et 'email'.
-    # On passe juste l'objet 'profile' pour ses autres attributs.
     profile = UserProfile.query.filter_by(user_sub=current_user.sub).first()
     return render_template("profile.html", profile=profile)
 
@@ -382,14 +396,12 @@ def update_profile():
     # Photo de profil
     avatar_file = request.files.get("avatar")
     if avatar_file and avatar_file.filename:
-        # Vérifier le type de fichier
         if avatar_file.mimetype and avatar_file.mimetype.startswith("image/"):
-            # Limiter la taille (5MB max)
-            avatar_file.seek(0, 2)  # Aller à la fin
+            avatar_file.seek(0, 2)
             file_size = avatar_file.tell()
-            avatar_file.seek(0)  # Revenir au début
+            avatar_file.seek(0)
             
-            if file_size <= 5 * 1024 * 1024:  # 5MB max
+            if file_size <= 5 * 1024 * 1024:
                 profile.avatar_data = avatar_file.read()
                 profile.avatar_mime = avatar_file.mimetype
 
@@ -402,7 +414,6 @@ def profile_avatar():
     """Retourne l'avatar de l'utilisateur courant."""
     profile = UserProfile.query.filter_by(user_sub=current_user.sub).first()
     if not profile or not profile.avatar_data:
-        # Retourner un avatar par défaut (404 pour déclencher le fallback)
         abort(404)
     
     return Response(
@@ -437,14 +448,12 @@ def create_scheduled_task():
     if not name or not module_name:
         return redirect(url_for("routes.scheduled_tasks"))
 
-    # Parser l'heure
     try:
         hour, minute = map(int, schedule_time_str.split(":"))
         schedule_time = time(hour, minute)
     except ValueError:
-        schedule_time = time(9, 0)  # défaut 09:00
+        schedule_time = time(9, 0)
 
-    # Calculer la prochaine exécution
     now = datetime.utcnow()
     next_run = _calculate_next_run(now, schedule_type, schedule_time, schedule_day)
 
@@ -493,26 +502,21 @@ def _calculate_next_run(now, schedule_type, schedule_time, schedule_day=None):
     next_date = now.date()
     
     if schedule_type == "daily":
-        # Si l'heure est déjà passée aujourd'hui, on passe au lendemain
         if now.time() >= schedule_time:
             next_date += timedelta(days=1)
     
     elif schedule_type == "weekly":
-        # schedule_day = 0 (lundi) à 6 (dimanche)
         target_weekday = int(schedule_day) if schedule_day else 0
         days_ahead = target_weekday - now.weekday()
-        if days_ahead <= 0:  # La cible est aujourd'hui ou dans le passé
+        if days_ahead <= 0:
             days_ahead += 7
         next_date += timedelta(days=days_ahead)
     
     elif schedule_type == "monthly":
-        # schedule_day = jour du mois (1-31)
         target_day = int(schedule_day) if schedule_day else 1
         if now.day <= target_day and now.time() < schedule_time:
-            # Ce mois-ci
             next_date = next_date.replace(day=target_day)
         else:
-            # Mois prochain
             if now.month == 12:
                 next_date = next_date.replace(year=now.year + 1, month=1, day=target_day)
             else:
@@ -531,40 +535,33 @@ def veille():
         published = entry.get("published", "")
         soup = BeautifulSoup(entry.summary, "html.parser")
 
-        # Supprimer tous les <h3> (titres de sections)
         for h3 in soup.find_all("h3"):
             h3.decompose()
 
-        # Supprimer tout ce qui suit le premier <hr>
         hr = soup.find("hr")
         if hr:
             for sibling in hr.find_next_siblings():
                 sibling.decompose()
             hr.decompose()
 
-        # Pour chaque <h4>, créer un article distinct
         for h4 in soup.find_all("h4"):
-            # Titre et lien
             a_tag = h4.find("a")
             if not a_tag:
                 continue
             title = a_tag.get_text().strip()
             link = a_tag.get("href", "").strip()
 
-            # Premier <p> après le <h4> → résumé texte
             summary_html = ""
             summary_p = h4.find_next_sibling("p")
             if summary_p:
                 summary_html = str(summary_p)
 
-            # Deuxième <p> après le <h4> → source (texte du <a>)
             source = ""
             if summary_p:
                 source_p = summary_p.find_next_sibling("p")
                 if source_p and source_p.find("a"):
                     source = source_p.get_text().strip()
 
-            # Première balise <img> qui suit → vignette (si présente)
             img_url = ""
             next_a = h4.find_next_sibling("a")
             if next_a and next_a.find("img"):
