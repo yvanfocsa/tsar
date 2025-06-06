@@ -301,7 +301,6 @@ def module_run(name: str):
     if not mod:
         abort(404)
 
-    # La soumission se fait maintenant via AJAX, on récupère les données du formulaire
     params = {
         field["name"]: (
             request.form.getlist(field["name"])
@@ -314,7 +313,6 @@ def module_run(name: str):
     job = current_app.celery.send_task("tsar.run_job",
                                        args=[name, params, current_user.sub])
 
-    # On renvoie toujours le job_id pour que le JavaScript puisse poller
     return jsonify({"job_id": job.id})
 
 # ─────────── JOB STATUS (pour le polling) ───────────
@@ -377,7 +375,19 @@ def download_report(rid: int):
 def profile():
     """Page de paramètres du compte utilisateur."""
     profile = UserProfile.query.filter_by(user_sub=current_user.sub).first()
-    return render_template("profile.html", profile=profile)
+
+    # Calcul des statistiques
+    scan_count = ScanLog.query.filter_by(user_sub=current_user.sub).count()
+    report_count = Report.query.filter_by(user_sub=current_user.sub).count()
+    favorite_count = len(session.get("favorites", []))
+
+    stats = {
+        "scans": scan_count,
+        "reports": report_count,
+        "favorites": favorite_count,
+    }
+
+    return render_template("profile.html", profile=profile, stats=stats)
 
 @bp.route("/profile", methods=["POST"])
 @login_required
